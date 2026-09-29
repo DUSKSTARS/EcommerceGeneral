@@ -1,0 +1,59 @@
+
+.hero {
+    padding-top: 80px;
+}
+.espace {
+    height: 60px;
+}
+
+.card-img-top {
+    height: 220px;
+    object-fit: cover;
+}
+
+.produit .card {
+    transition: transform 0.3s ease;
+}
+
+.produit .card:hover {
+    transform: translateY(-5px);
+}
+
+.navigation {
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.filtre-btn {
+    border-radius: 30px;
+    padding: 8px 25px;
+}
+
+/* =========================================================
+   ANIMATION DU COMPTEUR PANIER
+   ========================================================= */
+
+#compteurPanier {
+    transition: transform 0.2s ease;
+}
+
+#compteurPanier.pulse {
+    animation: pulse 0.4s ease;
+}
+
+@keyframes pulse {
+    0%   { transform: scale(1); }
+    50%  { transform: scale(1.6); }
+    100% { transform: scale(1); }
+}
+
+/* TOASTS */
+
+.toast-container .toast {
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    border-radius: 10px;
+    min-width: 280px;
+}
+
+.toast-container .toast-body {
+    font-weight: 500;
+}
