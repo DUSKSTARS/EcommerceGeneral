@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Hôte : 127.0.0.1
--- Généré le : lun. 28 sep. 2026 à 18:50
+-- Généré le : mer. 30 sep. 2026 à 15:15
 -- Version du serveur : 10.4.32-MariaDB
 -- Version de PHP : 8.2.12
 
@@ -34,6 +34,13 @@ CREATE TABLE `categories` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+--
+-- Déchargement des données de la table `categories`
+--
+
+INSERT INTO `categories` (`id`, `nom`, `slug`, `created_at`) VALUES
+(3, 'Homme', 'homme', '2026-09-29 10:11:52');
+
 -- --------------------------------------------------------
 
 --
@@ -60,6 +67,24 @@ INSERT INTO `commandes` (`id`, `client_nom`, `client_contact`, `total`, `details
 -- --------------------------------------------------------
 
 --
+-- Structure de la table `config`
+--
+
+CREATE TABLE `config` (
+  `cle` varchar(50) NOT NULL,
+  `valeur` varchar(255) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Déchargement des données de la table `config`
+--
+
+INSERT INTO `config` (`cle`, `valeur`) VALUES
+('admin_email_secours', 'duskaudace98@gmail.com');
+
+-- --------------------------------------------------------
+
+--
 -- Structure de la table `produits`
 --
 
@@ -76,6 +101,14 @@ CREATE TABLE `produits` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+--
+-- Déchargement des données de la table `produits`
+--
+
+INSERT INTO `produits` (`id`, `nom`, `description`, `prix`, `image`, `imag`, `ima`, `im`, `categorie_id`, `created_at`) VALUES
+(3, 'doudou', 'ygyug', 10000, 'images/1790676797_6abb8f3db4efb_télécharger (4).jpg', NULL, NULL, NULL, 3, '2026-09-29 10:13:17'),
+(4, 't-shirt polo', 'yyitygygyoygyiog_gègog', 20000, 'images/1790677111_6abb9077052cf_télécharger (3).jpg', 'images/1790677111_6abb907705724_télécharger (2).jpg', NULL, NULL, 3, '2026-09-29 10:18:31');
+
 -- --------------------------------------------------------
 
 --
@@ -87,6 +120,10 @@ CREATE TABLE `utilisateurs` (
   `nom` varchar(100) NOT NULL,
   `email` varchar(150) NOT NULL,
   `mot_de_passe` varchar(255) NOT NULL,
+  `tentatives` int(11) DEFAULT 0,
+  `bloque_jusqua` datetime DEFAULT NULL,
+  `code_deblocage` varchar(255) DEFAULT NULL,
+  `code_expire` datetime DEFAULT NULL,
   `role` enum('admin','editeur') DEFAULT 'admin',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -95,8 +132,8 @@ CREATE TABLE `utilisateurs` (
 -- Déchargement des données de la table `utilisateurs`
 --
 
-INSERT INTO `utilisateurs` (`id`, `nom`, `email`, `mot_de_passe`, `role`, `created_at`) VALUES
-(2, 'Administrateur', 'admin@boutique.com', '$2y$10$rz2pwsuVr6EXp0LIRxfE5OkOwAYK8a5Kd3Oh2BfPoDO5yh56sAW8e', 'admin', '2026-09-28 10:37:32');
+INSERT INTO `utilisateurs` (`id`, `nom`, `email`, `mot_de_passe`, `tentatives`, `bloque_jusqua`, `code_deblocage`, `code_expire`, `role`, `created_at`) VALUES
+(2, 'Administrateur', 'admin@boutique.com', '$2y$10$6OktkiWNsZrZxa/1LjzZ4.Y4qGt9uiU1yCEpZnfhQK4.4LJfXyUAu', 0, NULL, NULL, NULL, 'admin', '2026-09-28 10:37:32');
 
 --
 -- Index pour les tables déchargées
@@ -114,6 +151,12 @@ ALTER TABLE `categories`
 --
 ALTER TABLE `commandes`
   ADD PRIMARY KEY (`id`);
+
+--
+-- Index pour la table `config`
+--
+ALTER TABLE `config`
+  ADD PRIMARY KEY (`cle`);
 
 --
 -- Index pour la table `produits`
@@ -137,7 +180,7 @@ ALTER TABLE `utilisateurs`
 -- AUTO_INCREMENT pour la table `categories`
 --
 ALTER TABLE `categories`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT pour la table `commandes`
@@ -149,7 +192,7 @@ ALTER TABLE `commandes`
 -- AUTO_INCREMENT pour la table `produits`
 --
 ALTER TABLE `produits`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT pour la table `utilisateurs`
