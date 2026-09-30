@@ -328,8 +328,8 @@ champRecherche.addEventListener("keydown", function (e) {
 /* MODAL DE COMMANDE + WHATSAPP */
 
 // ⚠️ Numéro WhatsApp du vendeur (format international sans + ni espaces)
-// 229 = indicatif du Bénin + 0190890998
-const NUMERO_WHATSAPP = "2290190890998";
+// 229 = indicatif du Bénin 
+const NUMERO_WHATSAPP = "2290197196984";
 
 const modalCommande      = document.getElementById("modalCommande");
 const recapModalCommande = document.getElementById("recapModalCommande");
@@ -464,7 +464,7 @@ if (modalCommande) {
 
         // 3. Ouverture de WhatsApp
 
-        const url = "https://wa.me/290197196984" + NUMERO_WHATSAPP + "?text=" + message;
+        const url = "https://wa.me/" + NUMERO_WHATSAPP + "?text=" + message;
         window.open(url, "_blank");
 
 

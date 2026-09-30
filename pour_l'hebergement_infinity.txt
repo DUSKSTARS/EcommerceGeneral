@@ -1,0 +1,345 @@
+CRITIQUE — À faire absolument avant de déployer
+1. 🔑 Changer le mot de passe d'application Gmail (EXPOSÉ publiquement)
+Ton mot de passe uvvs llbi qkyj muqf a été écrit dans ce chat public. N'importe qui peut l'utiliser.
+
+Action :
+
+Va sur https://myaccount.google.com/apppasswords
+
+Supprime le mot de passe nommé « Ma Boutique »
+
+Crée-en un nouveau → nom : « Ma Boutique Prod »
+
+Copie-le dans config/mailer.php
+
+2. 🔒 Sécuriser les identifiants (ne pas les mettre en dur)
+Au lieu de mettre tes identifiants en clair dans mailer.php, crée un fichier .env :
+
+.env (à la racine, jamais commité)
+
+text
+DB_HOST=sql123.infinityfree.com
+DB_NAME=if0_xxxxxxx_ma_boutique
+DB_USER=if0_xxxxxxx
+DB_PASS=ton_mot_de_passe_db
+
+MAIL_HOST=smtp.gmail.com
+MAIL_USER=duskaudace98@gmail.com
+MAIL_PASS=nouveau_mot_de_passe_app
+MAIL_PORT=587
+MAIL_FROM_NAME=Ma Boutique
+.htaccess (à la racine, pour bloquer l'accès web au .env)
+
+apache
+<Files ".env">
+    Order Allow,Deny
+    Deny from all
+</Files>
+config/database.php — utilise les variables :
+
+php
+<?php
+// Chargement des variables d'environnement
+$env = parse_ini_file(__DIR__ . '/../.env');
+
+$host   = $env['DB_HOST'];
+$dbname = $env['DB_NAME'];
+$user   = $env['DB_USER'];
+$pass   = $env['DB_PASS'];
+
+try {
+    $pdo = new PDO(
+        "mysql:host=$host;dbname=$dbname;charset=utf8mb4",
+        $user,
+        $pass,
+        [
+            PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            PDO::ATTR_EMULATE_PREPARES   => false,
+        ]
+    );
+} catch (PDOException $e) {
+    die('Erreur de connexion à la base de données.'); // ⚠️ Ne pas afficher $e->getMessage() en prod
+}
+
+// ... getConfig + genererCodeDeblocage
+config/mailer.php — idem :
+
+php
+$env = parse_ini_file(__DIR__ . '/../.env');
+
+$mail->Host     = $env['MAIL_HOST'];
+$mail->Username = $env['MAIL_USER'];
+$mail->Password = $env['MAIL_PASS'];
+$mail->Port     = (int)$env['MAIL_PORT'];
+// ...
+3. 🚫 Désactiver l'affichage des erreurs PHP en production
+En local c'est bien, en production jamais : les erreurs révèlent les chemins, la structure, parfois les mots de passe.
+
+En haut de index.php, login.php, et tous les autres fichiers :
+
+php
+<?php
+ini_set('display_errors', 0);
+ini_set('display_startup_errors', 0);
+error_reporting(E_ALL); // continuer à logger mais ne pas afficher
+Ou mieux, dans un .htaccess à la racine :
+
+apache
+php_flag display_errors off
+php_flag display_startup_errors off
+php_value error_reporting "E_ALL & ~E_DEPRECATED & ~E_STRICT"
+php_value log_errors on
+4. 🗑️ Supprimer les fichiers de test
+À supprimer avant upload :
+
+❌ test-mail.php
+
+❌ test-code.php
+
+❌ creer-code-test.php
+
+❌ creer_admin.php (si tu l'as encore)
+
+❌ verif.php
+
+❌ Tout fichier .txt, .sql, .md qui traîne
+
+5. 🔐 Mettre un vrai mot de passe admin
+admin123 est trop faible pour la production. Change-le une fois déployé :
+
+sql
+UPDATE utilisateurs 
+SET mot_de_passe = '$2y$10$...'  -- généré avec password_hash('NouveauMotDePasse!2025')
+WHERE email = 'admin@boutique.com';
+Ou crée un changer_mot_de_passe.php temporaire.
+
+🟠 IMPORTANT — À adapter pour InfinityFree
+6. 🗄️ Adapter la connexion à la base
+InfinityFree utilise des identifiants différents de localhost/root/'' :
+
+Champ	Local (XAMPP)	InfinityFree
+Host	localhost	sqlXXX.infinityfree.com (fourni par eux)
+Utilisateur	root	if0_XXXXXXX
+Mot de passe	(vide)	Ton mot de passe vPanel
+Nom BDD	ma_boutique	if0_XXXXXXX_ma_boutique
+Trouve ces infos dans ton panneau InfinityFree :
+
+Connecte-toi à https://dash.infinityfree.com
+
+Clique sur ton compte → MySQL Databases
+
+Tu vois tous les identifiants
+
+Mets-les dans .env (voir point 2).
+
+7. 📁 Uploader PHPMailer sur InfinityFree
+Le dossier lib/PHPMailer/ doit être uploadé tel quel via le File Manager ou FTP.
+
+Structure finale sur le serveur :
+
+text
+htdocs/
+├── .env
+├── .htaccess
+├── config/
+├── lib/PHPMailer/src/
+├── images/
+├── admin/
+├── index.php
+└── login.php
+8. 📸 Vérifier les permissions du dossier images/
+Sur InfinityFree, les permissions doivent être :
+
+text
+images/    → 755
+uploads/   → 755 (si tu en as un)
+Pas de 777 (dangereux et souvent refusé par l'hébergeur).
+
+🟡 RECOMMANDÉ — Améliorations de sécurité
+9. 🛡️ Ajouter les en-têtes de sécurité (.htaccess)
+apache
+# Sécurité
+Header set X-Content-Type-Options "nosniff"
+Header set X-Frame-Options "SAMEORIGIN"
+Header set X-XSS-Protection "1; mode=block"
+Header set Referrer-Policy "strict-origin-when-cross-origin"
+
+# Empêcher le listing des dossiers
+Options -Indexes
+
+# Bloquer l'accès aux fichiers sensibles
+<FilesMatch "\.(env|sql|log|md|json|lock)$">
+    Order Allow,Deny
+    Deny from all
+</FilesMatch>
+10. 🚦 Limiter les tentatives par IP (anti-DDoS)
+Actuellement, tu limites par compte. Ajoute une limite par IP pour éviter qu'un bot essaie 1000 emails différents.
+
+Table SQL :
+
+sql
+CREATE TABLE logs_connexion (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    ip VARCHAR(45),
+    email VARCHAR(150),
+    succes TINYINT(1),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_ip (ip),
+    INDEX idx_date (created_at)
+);
+Dans login.php, avant la vérification :
+
+php
+$ip = $_SERVER['REMOTE_ADDR'];
+
+// Compter les échecs des 15 dernières minutes
+$stmt = $pdo->prepare('
+    SELECT COUNT(*) FROM logs_connexion 
+    WHERE ip = ? AND succes = 0 
+    AND created_at > DATE_SUB(NOW(), INTERVAL 15 MINUTE)
+');
+$stmt->execute([$ip]);
+$echecsIP = $stmt->fetchColumn();
+
+if ($echecsIP >= 10) {
+    die('Trop de tentatives depuis votre IP. Réessayez dans 15 minutes.');
+}
+
+// Après chaque tentative, loguer
+$pdo->prepare('INSERT INTO logs_connexion (ip, email, succes) VALUES (?, ?, ?)')
+    ->execute([$ip, $email, $connexionReussie ? 1 : 0]);
+11. 🔐 Activer HTTPS (SSL gratuit)
+InfinityFree fournit un SSL gratuit via Let's Encrypt. Active-le dans ton panneau → SSL Certificates.
+
+Puis dans .htaccess :
+
+apache
+RewriteEngine On
+RewriteCond %{HTTPS} off
+RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+12. 🍪 Sécuriser les cookies de session
+Dans un fichier config/session.php chargé au début :
+
+php
+<?php
+if (session_status() === PHP_SESSION_NONE) {
+    session_set_cookie_params([
+        'lifetime' => 0,
+        'path'     => '/',
+        'secure'   => isset($_SERVER['HTTPS']),  // true si HTTPS
+        'httponly' => true,                       // inaccessible en JS
+        'samesite' => 'Strict',                   // anti-CSRF
+    ]);
+    session_start();
+}
+Puis remplace tous les session_start() par require_once 'config/session.php';.
+
+🔵 BONUS — Améliorations UX
+13. 📧 Envoyer un email à l'utilisateur aussi
+Actuellement, seul l'admin reçoit l'email. Envoie aussi un avertissement à l'utilisateur bloqué :
+
+php
+// Après l'email à l'admin
+envoyerEmail(
+    $user['email'],
+    'Alerte de sécurité - Votre compte a été bloqué',
+    "Votre compte a été bloqué suite à 3 tentatives échouées.<br>
+     Si ce n'est pas vous, changez votre mot de passe."
+);
+14. ⏱️ Afficher un compte à rebours sur la page de blocage
+html
+<p>Réessayez dans <span id="timer"></span></p>
+<script>
+const fin = new Date('<?= $user['bloque_jusqua'] ?>').getTime();
+setInterval(() => {
+    const reste = Math.max(0, fin - Date.now());
+    const min = Math.floor(reste / 60000);
+    const sec = Math.floor((reste % 60000) / 1000);
+    document.getElementById('timer').textContent = min + 'm ' + sec + 's';
+}, 1000);
+</script>
+15. 🔄 Bouton « Renvoyer le code »
+Si l'utilisateur n'a pas reçu l'email, il doit pouvoir demander un renvoi :
+
+php
+if (isset($_POST['renvoyer'])) {
+    $nouveauCode = genererCodeDeblocage();
+    // ... régénérer + envoyer
+}
+📋 Checklist finale avant déploiement
+🔴 À faire absolument
+□ Nouveau mot de passe d'application Gmail généré
+□ Fichiers de test supprimés (test-*.php, creer-*.php, verif.php)
+□ display_errors désactivé (via .htaccess)
+□ Mot de passe admin changé (admin123 → mot de passe fort)
+□ Identifiants dans .env (pas en dur dans le code)
+□ .env protégé par .htaccess
+🟠 Pour InfinityFree
+□ Identifiants MySQL d'InfinityFree récupérés
+□ Base de données importée via phpMyAdmin
+□ lib/PHPMailer/ uploadé
+□ Dossier images/ en 755
+□ SSL activé
+🟡 Recommandé
+□ En-têtes de sécurité ajoutés
+□ Logs des tentatives par IP
+□ HTTPS forcé
+□ Cookies de session sécurisés
+🔵 Bonus
+□ Email envoyé aussi à l'utilisateur
+□ Compte à rebours affiché
+□ Bouton « Renvoyer le code »
+🚀 Procédure de déploiement (ordre exact)
+Renouvelle le mot de passe Gmail (point 1)
+
+Crée le .env avec les identifiants InfinityFree (point 2)
+
+Modifie database.php et mailer.php pour lire depuis .env
+
+Supprime les fichiers de test (point 4)
+
+Crée .htaccess avec toutes les règles (points 2, 3, 9, 11)
+
+Exporte ta base locale : phpMyAdmin → Exporter → SQL
+
+Upload tout via File Manager ou FTP (FileZilla)
+
+Importe la base sur InfinityFree via leur phpMyAdmin
+
+Teste :
+
+La boutique s'affiche
+
+Connexion admin OK
+
+Blocage après 3 échecs → email reçu
+
+Change le mot de passe admin (point 5)
+
+⚠️ Erreurs classiques après déploiement
+Erreur	Cause	Solution
+SQLSTATE[HY000] [1045] Access denied	Mauvais identifiants BDD	Vérifier .env
+Call to undefined function str_starts_with()	PHP < 8.0	Remplacer par substr($n, 0, 3) === '229'
+Class 'PHPMailer\PHPMailer\PHPMailer' not found	PHPMailer mal uploadé	Vérifier le chemin lib/PHPMailer/src/
+SMTP connect() failed	InfinityFree bloque Gmail port 587 ?	Non, ils l'autorisent — vérifier .env
+Images cassées	Dossier images/ mal uploadé	Permissions 755
+📞 Résumé
+Non, tu ne peux pas déployer tel quel.
+Mais les changements sont simples et rapides :
+
+Renouvelle le mot de passe Gmail (exposé)
+
+Crée .env pour les identifiants
+
+Désactive display_errors
+
+Supprime les fichiers de test
+
+Adapte la connexion aux identifiants InfinityFree
+
+Active SSL
+
+Une fois ces 6 points faits, tu peux déployer sereinement. Le reste (anti-DDoS, HTTPS forcé, etc.) peut venir après.
+
+Si tu veux, je peux te préparer un .htaccess complet et un database.php prêt pour InfinityFree — dis-moi. 😊
